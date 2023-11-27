@@ -1,0 +1,27 @@
+- hosts: all
+  become: true
+  tasks:
+    - name: nginx installation
+      ansible.builtin.package: 
+        name: 
+          - nginx 
+        state: latest 
+
+    - name: Make sure a service Nginx is running
+      ansible.builtin.systemd_service:
+        state: started
+        name: nginx
+
+          #- name: Stop Nginx
+          #ansible.builtin.systemd_service:
+          #state: stopped
+          #name: nginx
+    
+          # - name: show vars
+          #ansible.builtin.debug:
+          #msg: "{{ ansible_facts }}"
+    
+    - name: Template a file to Nginx 
+      ansible.builtin.template:
+        src: /home/tub/ansible/nginx_index.j2
+        dest: /var/www/html/index.html
