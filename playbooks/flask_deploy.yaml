@@ -1,0 +1,83 @@
+- hosts: all
+  become: yes
+
+  tasks:
+      - name: Update apt cache
+        apt:
+          update_cache: yes
+
+      - name: Install all dependencies
+        apt:
+          name:
+            - python3 
+            - python3-dev
+            - python3-pip
+            - python3-virtualenv
+            - virtualenv
+            - nginx
+            - git
+          state: present 
+
+      - name: Ensure nginx service started
+        systemd:
+          name: nginx
+          state: started
+
+      - name: Add the user running webapp
+        user:
+          name: "flask"
+          state: present
+          append: yes # important pour ne pas supprimer les groupes d'un utilisateur existant
+          groups:
+            - "www-data"
+
+      - name: Git clone/update python hello webapp in user home
+        git:
+          repo: "https://github.com/e-lie/flask_hello_ansible.git"
+          dest: /home/flask/hello
+          version: "master"
+          clone: yes
+          update: no
+      
+      - name: Install python dependencies for the web app in a viratualenv
+        pip:
+          requirements: /home/flask/hello/requirements.txt
+          virtualenv: /home/flask/venv
+          virtualenv_python: python3
+
+      - name: Change permissions of app directory
+        file:
+          path: /home/flask/hello
+          state: directory
+          owner: "flask"
+          group: www-data
+          recurse: true
+
+      - name: Copy configuration file of Flask service
+        template:
+          src: ../templates/app.service.j2
+          dest: /etc/systemd/system/hello.service
+
+      - name: Start systemd app service
+        systemd:
+          name: "hello.service"
+          state: restarted
+          enabled: yes
+
+      - name: Copy configuration file of Nginx
+        template:
+          src: ../templates/nginx.conf.j2
+          dest: /etc/nginx/sites-available/hello.test.conf
+      
+      - name: Remove default Nginx site config
+        file:
+          src: /etc/nginx/sites-available/hello.test.conf
+          dest: /etc/nginx/sites-enabled/hello.test.conf
+          state: link
+          force: yes
+      
+      - name: Restart Nginx service
+        systemd:
+          name: "nginx"
+          state: restarted
+          enabled: yes

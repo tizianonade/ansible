@@ -1,0 +1,9 @@
+[Service]
+User=flask
+Group=www-data
+WorkingDirectory=/home/flask/hello
+Environment="PATH=/home/flask/hello/venv/bin"
+ExecStart=/home/flask/hello/venv/bin/gunicorn --workers 3 --bind unix:hello.sock -m 007 app:app
+
+[Install]
+WantedBy=multi-user.target
